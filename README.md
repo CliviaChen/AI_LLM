@@ -1,4 +1,8 @@
-# AI_LLM · DSH Control room
+# AI_LLM
+
+我的 ai 大模型通识课作业。仓库里目前的主要产出是 DeepSeek Harness Web 客户端的「控制室」工作台插件，下面是对它的说明。
+
+## DSH Control room
 
 A local plugin for the DeepSeek Harness Web client: an entry pinned at the foot of the left sidebar opens a three-panel **Control room** that turns the local projects (DSH Workspaces) into liquid-glass cards.
 
