@@ -1,0 +1,6 @@
+awesome-design-md-main/
+.dsh-tmp/
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
