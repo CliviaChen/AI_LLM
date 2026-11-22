@@ -4,16 +4,16 @@
 
 ## DSH Control room
 
-A local plugin for the DeepSeek Harness Web client: an entry pinned at the foot of the left sidebar opens a three-panel **Control room** that turns the local projects (DSH Workspaces) into liquid-glass cards.
+A local plugin for the DeepSeek Harness Web client: an entry pinned at the foot of the left sidebar opens a **Control room** that shows the local projects (DSH Workspaces) as a quiet row of liquid-glass status cards.
 
 ## Features
 
 - **Sidebar foot entry** — a row above Settings; the 56px rail shows the glyph only.
-- **Three panels** — *My local projects*, *Project detail*, *Overview*; the left and right panels toggle from the header, the centre panel stays.
-- **Liquid-glass cards** — layered translucent white/blue gradients, `backdrop-filter`, a masked specular rim and a soft top gloss; the canonical path is deliberately not printed on cards.
-- **Running state** — while a project's Session is working, that card's rim pulses and its timestamp becomes `Running · mm:ss`; the header adds a live pill and the detail panel an elapsed row.
-- **Search, copy path, open project, back to chat** — a single primary action per card, no duplicated "new session" affordance.
-- **Themes** — glass alpha and rim strength follow the host color scheme through `light-dark()`; text and borders use the host `--dsw-alias-*` tokens. `prefers-reduced-motion` disables the pulse.
+- **Status cards only** — opening the page shows nothing but project cards: no title bar, no statistics, no detail or overview panel, no search field. Clicking a card opens that project.
+- **Three per row, as many rows as needed** — every project gets a card; running ones come first, then the rest by update time. The grid wraps into further rows, and a short last row starts at the left edge instead of centring.
+- **Rounded-square glass cards** — square cards with large gaps over a flat host-colored background, carrying a backdrop-blurred translucent fill, a masked specular rim and a deep soft shadow so each card reads as floating.
+- **Vector mark** — the light-blue badge at each card's top-left holds a drawn glyph instead of a letter monogram.
+- **Running state** — while a project's Session is working, that card's 1px rim carries a rotating conic light sweep, its fill breathes, and the timestamp becomes `Running · mm:ss`. `prefers-reduced-motion` disables both.
 
 ## Layout
 
@@ -42,9 +42,10 @@ Command-line equivalent, when `plugin_manager` is available to an agent: `instal
 ## Data and limits
 
 - Projects are the Workspaces already registered in DSH; the page does not scan the filesystem or create/remove Workspaces.
+- Every project is rendered. The grid is three columns wide and grows downward; when the row count exceeds the panel height the page scrolls.
 - The elapsed time of a running conversation starts when this page first observes the Session running; a reload restarts the measurement.
-- Sessions are not listed individually yet.
-- The panel layout is a fixed three-column composition with hide/show toggles; panels cannot be dragged or re-docked.
+- Sessions are not listed individually.
+- The page has no search, no panel toggles and no back button: leave it through the sidebar.
 
 ## Verify
 
@@ -52,7 +53,7 @@ Command-line equivalent, when `plugin_manager` is available to an agent: `instal
 node scripts/verify.mjs
 ```
 
-The script loads `control-room/client.js` with a minimal React stand-in, applies the plugin to a fake slot registry, and asserts the two registrations, card rendering, running-state markup, and the stylesheet shape.
+The script loads `control-room/client.js` with a minimal React stand-in, applies the plugin to a fake slot registry, and asserts the two registrations, that every project is rendered, the three-column cap and row ordering (including a short last row), card rendering and click action, the absence of the former chrome, the running-state markup, and the stylesheet shape.
 
 ## Transcript
 

@@ -1,9 +1,9 @@
 {
   "name": "@local/control-room",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
-  "description": "Control room: a multi-panel workspace bench for local projects, opened from the sidebar foot.",
+  "description": "Control room: a quiet row of glass status cards for local projects, opened from the sidebar foot.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
