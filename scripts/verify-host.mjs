@@ -8,6 +8,7 @@
  */
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { listLogFiles, sessionOf, dshHome } from '../control-room/usage.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(here, '..')
@@ -108,6 +109,22 @@ function makeCtx(options = {}) {
   const dayBody = await dayResponse.json()
   check('day scale narrows to one day', dayBody.days === 1, dayBody.days)
   check('day window never exceeds the week window', dayBody.usage.tokens.net <= body.usage.tokens.net, dayBody.usage.tokens.net + ' <= ' + body.usage.tokens.net)
+
+  // --- session scoping, used by the per-project week chart
+  const firstLog = listLogFiles(dshHome())[0]
+  if (firstLog) {
+    const bareId = sessionOf(firstLog.file).replace(/^session-/, '')
+    const since = Date.now() - 7 * 86400000
+    const scoped = await route.fetch({ url: 'http://127.0.0.1:61469/api/control-room-usage?since=' + since + '&sessions=' + encodeURIComponent(bareId) })
+    const scopedBody = await scoped.json()
+    check('session scope is reported', scopedBody.scopedSessions === 1, scopedBody.scopedSessions)
+    check('session scope keeps only that session log', scopedBody.usage.files <= 1, scopedBody.usage.files)
+    check('scoped window is honoured', scopedBody.since === since, scopedBody.since + ' vs ' + since)
+
+    const unknown = await route.fetch({ url: 'http://127.0.0.1:61469/api/control-room-usage?since=' + since + '&sessions=nope-not-a-session' })
+    const unknownBody = await unknown.json()
+    check('unknown session yields no records', unknownBody.usage.records === 0, unknownBody.usage.records)
+  }
 
   const badResponse = await route.fetch({ url: 'not a url' })
   check('bad url is rejected with 400', badResponse.status === 400, badResponse.status)

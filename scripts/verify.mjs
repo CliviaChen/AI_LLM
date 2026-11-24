@@ -259,7 +259,7 @@ check('footer action id', foot?.options.id === 'control-room')
 function baseProps() {
   const injected = main.options.inject()
   return {
-    t: (key) => key,
+    t: (key) => (key === 'unitTask' ? '个' : key),
     useWorkspaces: (selector) => selector({ items: projects }),
     useSessions: (selector) => selector(sessions),
     useSessionStatus: (selector) => selector(statuses),
@@ -326,7 +326,12 @@ if (main) {
   // --- board tab
   const boardView = page.click('tabBoard')
   check('board shows stats', byClass(boardView, 'cr-stat').length === 4, byClass(boardView, 'cr-stat').length)
-  check('board shows 14-day activity', byClass(boardView, 'cr-bar').length === 14, byClass(boardView, 'cr-bar').length)
+  check('board shows a seven-day week chart', byClass(boardView, 'cr-chartCol').length === 7, byClass(boardView, 'cr-chartCol').length)
+  const tips = byClass(boardView, 'cr-chartTip').map((node) => nodeText(node))
+  check('every column carries a tooltip', tips.length === 7 && tips.every((tip) => tip.includes('M') && tip.includes('个')), tips.join(' | '))
+  check('completed task grows a downward bar',
+    byClass(boardView, 'cr-chartDown').some((node) => node.props.style && node.props.style.height !== '0%'),
+    JSON.stringify(byClass(boardView, 'cr-chartDown').map((node) => node.props.style)))
 
   // --- sessions tab
   const sessionsView = page.click('tabSessions')

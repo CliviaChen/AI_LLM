@@ -74,14 +74,30 @@ export function apply(ctx) {
 
       const scale = url.searchParams.get('scale') || 'month'
       const days = SCALES[scale] || SCALES.month
-      const key = scale + ':' + days
+
+      // `since` lets a caller ask for a calendar week; `sessions` scopes the scan
+      // to one project so its chart does not include other workspaces.
+      const sinceParam = Number(url.searchParams.get('since'))
+      const explicitSince = Number.isFinite(sinceParam) && sinceParam > 0
+      const sinceMs = explicitSince
+        ? Math.max(sinceParam, Date.now() - 31 * 86400000)
+        : Date.now() - days * 86400000
+      const sessionsParam = url.searchParams.get('sessions') || ''
+      const sessionList = sessionsParam.split(',').map((id) => id.trim()).filter(Boolean).slice(0, 60)
+      // Log directories may be named `<id>` or `session-<id>`; accept both.
+      const sessions = new Set()
+      for (const id of sessionList) {
+        sessions.add(id)
+        sessions.add('session-' + id)
+      }
+      const key = scale + ':' + days + ':' + (explicitSince ? String(sinceParam) : 'rolling') + ':' + sessionList.join(',')
 
       try {
         let usage
         if (cache.payload && cache.key === key && Date.now() - cache.at < CACHE_MS) {
           usage = cache.payload
         } else {
-          usage = scanUsage({ sinceMs: Date.now() - days * 86400000 })
+          usage = scanUsage({ sinceMs, sessions: sessionList.length > 0 ? sessions : null })
           cache.at = Date.now()
           cache.key = key
           cache.payload = usage
@@ -108,6 +124,8 @@ export function apply(ctx) {
           ok: true,
           scale,
           days,
+          since: sinceMs,
+          scopedSessions: sessionList.length,
           home: dshHome(),
           usage,
           balance,

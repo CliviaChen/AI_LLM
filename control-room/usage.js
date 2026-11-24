@@ -93,6 +93,15 @@ export function workspaceOf(file) {
   }
 }
 
+/** Session id is the log file's parent directory name. */
+export function sessionOf(file) {
+  try {
+    return path.basename(path.dirname(file))
+  } catch (_error) {
+    return ''
+  }
+}
+
 function usageOf(record) {
   const data = record && record.data
   const direct = data && data.usage
@@ -113,6 +122,7 @@ function usageOf(record) {
 export function scanUsage(options = {}) {
   const home = options.home || dshHome()
   const sinceMs = Number.isFinite(options.sinceMs) ? options.sinceMs : 0
+  const sessions = options.sessions instanceof Set ? options.sessions : null
   const files = listLogFiles(home)
 
   let records = 0
@@ -120,11 +130,15 @@ export function scanUsage(options = {}) {
   let netTokens = 0
   let sessionCount = 0
   let skippedFiles = 0
+  let consideredFiles = 0
   const perDay = new Map()
   const perWorkspace = new Map()
   const perHour = new Array(24).fill(0).map((_, hour) => ({ hour, net: 0, total: 0 }))
 
   for (const entry of files) {
+    // Optional session filter, so one project can chart only its own sessions.
+    if (sessions && sessions.size > 0 && !sessions.has(sessionOf(entry.file))) continue
+    consideredFiles += 1
     let text
     try {
       text = decompressFrames(fs.readFileSync(entry.file))
@@ -190,7 +204,7 @@ export function scanUsage(options = {}) {
 
   return {
     home,
-    files: files.length,
+    files: consideredFiles,
     skippedFiles,
     sessions: sessionCount,
     records,

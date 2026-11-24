@@ -100,6 +100,7 @@
 | F15 | Token 用量（Host 路线） | Token 磁贴可点击；Host 半边读会话日志 + 账号余额，注册 `GET /api/control-room-usage` | 净消耗（input+output）与总消耗（含缓存）都显示；非 owner Peer 返回 403；读不到明确说明 |
 | F16 | 最活跃时段 | 按 token（净消耗）排名，随尺度变化：日=最忙的连续 3 小时、周=最忙的一天、月=最忙的一周 | 无对应小时/天/周数据时**整块移除**，不留 `—` |
 | F17 | 工作区重命名 | 卡片右键 →「重命名工作区」→ 独立弹窗输入 → 确定 | 写入真实工作区记录（`workspaceController.rename`），**侧边栏同步改名**；空名/重名有错误提示 |
+| F18 | 本周活动柱状图 | 看板 tab：7 列（周一起），灰色轨道为轴；Token 向上、完成任务向下 | 悬停显示 `Token 0.42M · 完成 3 个`；Token 仅统计本项目会话；无 `doneAt` 的旧任务不计入 |
 
 **Token 的真实约束**：账号接口（`deepseekAccount`）只有余额，没有用量；真实 token 数在**会话日志**里（`data.message.usage`）。因此 F15 由 Host 半边读日志并求和，两种口径都返回：`net = input+output`、`total = totalTokens（含缓存）`。数据经由 Connection 的 exact Fetch 路由 `GET /api/control-room-usage` 提供，框架对非 owner Peer 直接 403。Host 改动不热重载，**在 Plugins 里关开一次插件行即可加载**（无需重启应用），激活状态记录在 `<dsh home>/control-room-host.json`。**不估算。**
 

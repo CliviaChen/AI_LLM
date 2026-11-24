@@ -16,7 +16,7 @@ A local plugin for the DeepSeek Harness Web client: an entry pinned at the foot 
 - **"Do next" bar** — up to three cards chosen by: needs you → due today/tomorrow → due this week → running → touched this week, each with the reason spelled out.
 - **Project cockpit** — four views behind every card:
   - *Overview* — stage, deadline and a one-line next step.
-  - *Board* — sessions, tasks done, days to deadline, last activity, plus a 14-day activity chart and a task progress bar.
+  - *Board* — sessions, tasks done, days to deadline, last activity, plus a **this-week chart**: seven columns, tokens spent growing **up** (magenta) and tasks completed growing **down** (cyan) over a grey track, with a hover tooltip showing `Token 0.42M · 完成 3 个`.
   - *Tasks* — add, complete and delete, with a progress bar.
   - *Sessions* — every session of the project; clicking one opens that exact session (`uiWorkspace.openSession`), falling back to the workspace when the host declines.
 - **"Open chat" stays explicit** — the conversation is one button away in the cockpit header, so browsing a project never interrupts a chat.
@@ -60,7 +60,7 @@ Command-line equivalent, when `plugin_manager` is available to an agent: `instal
 - Every project is rendered. The grid is three columns wide and grows downward; when the row count exceeds the panel height the page scrolls.
 - Stage, deadline, next step and tasks are stored in the browser's `localStorage` under `control-room:meta`; they do not sync across devices and are lost with site data.
 - States come from the host: `running` from the Session record, `waiting` from `pendingInteraction` (`approval`, `plan-review`, `question`).
-- The board counts sessions per day from their update times; the host exposes no durations, so none are estimated. Token numbers come from the Host's session-log scan, not from the board.
+- The board's chart covers **this calendar week** (Monday onward), scoped to the project's own sessions: the Host scans only those session logs, so another project's tokens never leak in. Tasks completed before this version carry no `doneAt` and therefore do not appear in the chart.
 - Token counts are read from `<dsh home>/sessions/**/session.v4.jsonl.zstd` on the Host and served over `/api/control-room-usage`. A Host change does not hot-reload; toggle the plugin row in **Plugins** (or restart DSH) to load it. Activation is recorded in `<dsh home>/control-room-host.json`.
 - Account balance comes from `deepseekAccount.getBalance`; the service exposes no token-history query.
 - The elapsed time of a running conversation starts when this page first observes the Session running; a reload restarts the measurement.

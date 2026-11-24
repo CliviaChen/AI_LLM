@@ -11,7 +11,8 @@ window.__ModuleLoader__.load({
     const MAX_FOCUS = 3
     const META_KEY = 'control-room:meta'
     const FLAG_KEY = 'control-room:onboarded'
-    const ACTIVITY_DAYS = 14
+    const ACTIVITY_DAYS = 7
+const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdSun']
 
     const STAGES = [
       { id: 'idea', key: 'stageIdea' },
@@ -84,8 +85,20 @@ window.__ModuleLoader__.load({
       statTasks: '任务完成',
       statDue: '距截止',
       statActive: '最近活动',
-      activityTitle: '最近 14 天活动',
-      activityAria: '最近 14 天每天的会话数',
+      activityTitle: '这一周活动',
+      activityAria: '这一周每天的 token 消耗与完成的任务数',
+      legendTokens: 'Token 消耗',
+      legendTasks: '完成任务',
+      chartTipTokens: 'Token',
+      chartTipTasks: '完成',
+      unitTask: '个',
+      wdMon: '一',
+      wdTue: '二',
+      wdWed: '三',
+      wdThu: '四',
+      wdFri: '五',
+      wdSat: '六',
+      wdSun: '日',
       tasksTitle: '任务清单',
       tasksEmpty: '还没有任务。把下一步拆成 2–3 条，开工时不用想。',
       taskAdd: '添加',
@@ -208,8 +221,20 @@ window.__ModuleLoader__.load({
       statTasks: 'Tasks done',
       statDue: 'Due in',
       statActive: 'Last active',
-      activityTitle: 'Last 14 days',
-      activityAria: 'Sessions per day over the last 14 days',
+      activityTitle: 'This week',
+      activityAria: 'Tokens spent and tasks completed on each day of this week',
+      legendTokens: 'Tokens',
+      legendTasks: 'Tasks done',
+      chartTipTokens: 'Token',
+      chartTipTasks: 'done',
+      unitTask: ' tasks',
+      wdMon: 'Mon',
+      wdTue: 'Tue',
+      wdWed: 'Wed',
+      wdThu: 'Thu',
+      wdFri: 'Fri',
+      wdSat: 'Sat',
+      wdSun: 'Sun',
       tasksTitle: 'Task list',
       tasksEmpty: 'No tasks yet. Break the next step into 2–3 items.',
       taskAdd: 'Add',
@@ -435,11 +460,30 @@ window.__ModuleLoader__.load({
 .cr-stat{border:2px solid var(--cr-line);border-radius:3px;background:var(--cr-paper);padding:12px 14px;box-shadow:4px 4px 0 var(--cr-shadow)}
 .cr-statValue{font-size:24px;font-weight:800;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
 .cr-statLabel{margin-top:5px;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.66}
-.cr-bars{display:flex;align-items:flex-end;gap:5px;height:86px}
-.cr-bar{flex:1;display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:4px}
-.cr-barFill{background:var(--cr-lime);border:1px solid var(--cr-line);min-height:2px}
-.cr-barZero{background:color-mix(in srgb,var(--cr-line) 14%,transparent);border:1px solid transparent;height:2px}
-.cr-barLabel{font-size:8px;text-align:center;opacity:.5;white-space:nowrap;overflow:hidden}
+.cr-legends{display:flex;gap:14px;margin-bottom:10px;font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.68}
+.cr-legend{display:inline-flex;align-items:center;gap:6px}
+.cr-legendSwatch{width:10px;height:10px;border:2px solid var(--cr-line)}
+.cr-legendSwatch--up{background:var(--cr-magenta)}
+.cr-legendSwatch--down{background:var(--cr-cyan)}
+/* week chart: tokens grow up, completed tasks grow down, over a grey track */
+.cr-chart{position:relative;display:grid;grid-template-columns:repeat(7,1fr);gap:8px;height:150px;margin:4px 0 22px}
+.cr-chartBase{position:absolute;left:0;right:0;top:calc(50% - 1px);height:2px;background:color-mix(in srgb,var(--cr-line) 42%,transparent)}
+.cr-chartCol{position:relative;height:100%}
+.cr-chartCol:focus-visible{outline:3px solid var(--cr-lime);outline-offset:2px}
+.cr-chartTrack{position:absolute;left:50%;transform:translateX(-50%);top:0;bottom:0;width:16px;
+  background:color-mix(in srgb,var(--cr-line) 10%,transparent)}
+.cr-chartCol[data-idle="true"] .cr-chartTrack{background:color-mix(in srgb,var(--cr-line) 5%,transparent)}
+.cr-chartUp{position:absolute;left:50%;transform:translateX(-50%);bottom:50%;width:16px;box-sizing:border-box;
+  background:var(--cr-magenta);border:2px solid var(--cr-line);border-bottom:0}
+.cr-chartDown{position:absolute;left:50%;transform:translateX(-50%);top:50%;width:16px;box-sizing:border-box;
+  background:var(--cr-cyan);border:2px solid var(--cr-line);border-top:0}
+.cr-chartLabel{position:absolute;left:0;right:0;bottom:-18px;text-align:center;font-size:9px;font-weight:700;
+  letter-spacing:.04em;opacity:.55;white-space:nowrap}
+.cr-chartTip{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);z-index:6;
+  padding:6px 8px;border:2px solid var(--cr-line);border-radius:2px;background:var(--cr-paper);color:var(--cr-line);
+  box-shadow:3px 3px 0 var(--cr-shadow);font-size:10.5px;font-weight:700;white-space:nowrap;
+  opacity:0;pointer-events:none;transition:opacity .12s}
+.cr-chartCol:hover .cr-chartTip,.cr-chartCol:focus-visible .cr-chartTip{opacity:1}
 .cr-progress{margin-top:16px;height:12px;border:2px solid var(--cr-line);border-radius:2px;background:transparent;overflow:hidden}
 .cr-progressFill{height:100%;background:var(--cr-lime)}
 /* tasks */
@@ -833,7 +877,6 @@ window.__ModuleLoader__.load({
       return lines.join('\n')
     }
 
-    /** Pull wallet rows out of whatever shape the account call returns. */
     /** Compact token counts: 5.6M reads better than 5615952 in a small tile. */
     function compact(value) {
       if (typeof value !== 'number' || !Number.isFinite(value)) return '—'
@@ -843,6 +886,17 @@ window.__ModuleLoader__.load({
       return String(value)
     }
 
+    /** Chart tooltips always carry the M unit, with two decimals. */
+    function formatM(value) {
+      return ((Number(value) || 0) / 1e6).toFixed(2) + 'M'
+    }
+
+    /** Local calendar key, matching the Host's perDay bucket keys. */
+    function localDayKey(date) {
+      return date.getFullYear() + '-' + pad2(date.getMonth() + 1) + '-' + pad2(date.getDate())
+    }
+
+    /** Pull wallet rows out of whatever shape the account call returns. */
     function formatWallets(value) {
       const rows = []
       const push = (list) => {
@@ -919,6 +973,7 @@ window.__ModuleLoader__.load({
       const [tab, setTab] = useState(initialTab || 'overview')
       const [taskDraft, setTaskDraft] = useState('')
       const [noteEditing, setNoteEditing] = useState(null)
+      const [weekTokens, setWeekTokens] = useState(null)
 
       const projectMeta = meta || {}
       const tasks = Array.isArray(projectMeta.tasks) ? projectMeta.tasks : []
@@ -934,27 +989,58 @@ window.__ModuleLoader__.load({
         setTaskDraft('')
       }
 
+      // "This week" is the local calendar week, Monday 00:00 onward.
+      const weekStartMs = useMemo(() => {
+        const midnight = new Date()
+        midnight.setHours(0, 0, 0, 0)
+        return midnight.getTime() - ((midnight.getDay() + 6) % 7) * 86400000
+      }, [])
+
+      const sessionIdsKey = sessions.map((session) => session.id).filter(Boolean).join(',')
+
+      useEffect(() => {
+        if (typeof fetch !== 'function') return undefined
+        let cancelled = false
+        const query = 'since=' + String(weekStartMs)
+          + (sessionIdsKey === '' ? '&scale=week' : '&sessions=' + encodeURIComponent(sessionIdsKey))
+        fetch('/api/control-room-usage?' + query, { credentials: 'same-origin' })
+          .then((response) => (response && response.ok === true ? response.json() : null))
+          .then((body) => {
+            if (cancelled) return
+            const map = {}
+            if (body && body.ok === true && body.usage && Array.isArray(body.usage.perDay)) {
+              for (const row of body.usage.perDay) map[row.day] = Number(row.net) || 0
+            }
+            setWeekTokens(map)
+          })
+          .catch(() => { if (!cancelled) setWeekTokens({}) })
+        return () => { cancelled = true }
+      }, [weekStartMs, sessionIdsKey])
+
       const activity = useMemo(() => {
         const rows = []
-        const start = new Date()
-        start.setHours(0, 0, 0, 0)
-        for (let offset = ACTIVITY_DAYS - 1; offset >= 0; offset -= 1) {
-          const day = new Date(start.getTime() - offset * 86400000)
-          rows.push({ key: day.getTime(), label: day.getDate(), count: 0 })
-        }
-        const index = new Map(rows.map((row) => [row.key, row]))
-        for (const session of sessions) {
-          const at = Date.parse(session.updatedAt)
-          if (!Number.isFinite(at)) continue
-          const floored = new Date(at)
-          floored.setHours(0, 0, 0, 0)
-          const bucket = index.get(floored.getTime())
-          if (bucket) bucket.count += 1
+        for (let offset = 0; offset < 7; offset += 1) {
+          const day = new Date(weekStartMs + offset * 86400000)
+          const key = localDayKey(day)
+          let doneTasks = 0
+          for (const task of tasks) {
+            if (!task.done || !task.doneAt) continue
+            const at = Date.parse(task.doneAt)
+            if (Number.isFinite(at) && localDayKey(new Date(at)) === key) doneTasks += 1
+          }
+          rows.push({
+            key,
+            label: day.getDate(),
+            weekday: t(WEEKDAY_KEYS[(day.getDay() + 6) % 7]),
+            tokens: weekTokens ? (weekTokens[key] || 0) : 0,
+            doneTasks,
+          })
         }
         return rows
-      }, [sessions])
+      }, [weekStartMs, weekTokens, tasks, t])
 
-      const peak = Math.max(1, ...activity.map((row) => row.count))
+      const maxTokens = Math.max(1, ...activity.map((row) => row.tokens))
+      const maxTasks = Math.max(1, ...activity.map((row) => row.doneTasks))
       const latest = sessions[0] || null
 
       const overview = h('div', { className: 'cr-panel' },
@@ -1018,13 +1104,37 @@ window.__ModuleLoader__.load({
           ),
         ),
         h('h3', { className: 'cr-panelTitle' }, t('activityTitle')),
-        h('div', { className: 'cr-bars', role: 'img', 'aria-label': t('activityAria') },
-          activity.map((day) => h('div', { key: day.key, className: 'cr-bar', title: String(day.count) },
-            day.count > 0
-              ? h('div', { className: 'cr-barFill', style: { height: String(Math.round((day.count / peak) * 100)) + '%' } })
-              : h('div', { className: 'cr-barZero' }),
-            h('div', { className: 'cr-barLabel' }, String(day.label)),
-          )),
+        h('div', { className: 'cr-legends' },
+          h('span', { className: 'cr-legend' }, h('i', { className: 'cr-legendSwatch cr-legendSwatch--up', 'aria-hidden': 'true' }), t('legendTokens')),
+          h('span', { className: 'cr-legend' }, h('i', { className: 'cr-legendSwatch cr-legendSwatch--down', 'aria-hidden': 'true' }), t('legendTasks')),
+        ),
+        h('div', { className: 'cr-chart', role: 'img', 'aria-label': t('activityAria') },
+          h('span', { className: 'cr-chartBase', 'aria-hidden': 'true' }),
+          activity.map((day) => {
+            const tip = t('chartTipTokens') + ' ' + formatM(day.tokens)
+              + ' · ' + t('chartTipTasks') + ' ' + String(day.doneTasks) + t('unitTask')
+            return h('div', {
+              key: day.key,
+              className: 'cr-chartCol',
+              tabIndex: 0,
+              'aria-label': day.weekday + ' · ' + tip,
+              'data-idle': day.tokens === 0 && day.doneTasks === 0 ? 'true' : 'false',
+            },
+              h('span', { className: 'cr-chartTrack', 'aria-hidden': 'true' }),
+              h('span', {
+                className: 'cr-chartUp',
+                'aria-hidden': 'true',
+                style: { height: String(Math.round((day.tokens / maxTokens) * 46)) + '%' },
+              }),
+              h('span', {
+                className: 'cr-chartDown',
+                'aria-hidden': 'true',
+                style: { height: String(Math.round((day.doneTasks / maxTasks) * 46)) + '%' },
+              }),
+              h('span', { className: 'cr-chartTip' }, tip),
+              h('span', { className: 'cr-chartLabel' }, day.weekday + ' ' + String(day.label)),
+            )
+          }),
         ),
         h('div', { className: 'cr-progress', 'aria-hidden': 'true' },
           h('div', { className: 'cr-progressFill', style: { width: tasks.length === 0 ? '0%' : String(Math.round((doneCount / tasks.length) * 100)) + '%' } }),
@@ -1058,7 +1168,9 @@ window.__ModuleLoader__.load({
                 className: 'cr-taskCheck',
                 'aria-pressed': task.done ? 'true' : 'false',
                 'aria-label': task.text,
-                onClick: () => { props.update({ tasks: tasks.map((item) => (item.id === task.id ? { id: item.id, text: item.text, done: !item.done } : item)) }) },
+                onClick: () => { props.update({ tasks: tasks.map((item) => (item.id === task.id
+                  ? { id: item.id, text: item.text, done: !item.done, doneAt: !item.done ? new Date().toISOString() : '' }
+                  : item)) }) },
               }, task.done ? '✓' : ''),
               h('span', { className: 'cr-taskText' }, task.text),
               h('button', {
