@@ -146,12 +146,15 @@ store.set('control-room:meta', JSON.stringify({ 'ws-3': { stage: 'active', ddl: 
 let factory = null
 const copied = []
 const renameCalls = []
+const createCalls = []
 const sandbox = {
   window: {
     __ModuleLoader__: { load(entry) { factory = entry.factory } },
     setInterval: () => 1,
     clearInterval: () => {},
-    setTimeout: () => 1,
+    // Overlay exit animations unmount on a timer; run it immediately so the
+    // assertions observe the settled state.
+    setTimeout: (fn) => { if (typeof fn === 'function') fn(); return 1 },
     clearTimeout: () => {},
     innerWidth: 1440,
     innerHeight: 900,
@@ -259,7 +262,7 @@ check('footer action id', foot?.options.id === 'control-room')
 function baseProps() {
   const injected = main.options.inject()
   return {
-    t: (key) => (key === 'unitTask' ? '个' : key),
+    t: (key) => (key === 'unitTask' ? '个' : key === 'createDefaultName' ? '新建对话' : key),
     useWorkspaces: (selector) => selector({ items: projects }),
     useSessions: (selector) => selector(sessions),
     useSessionStatus: (selector) => selector(statuses),
@@ -267,6 +270,10 @@ function baseProps() {
     readUsage: () => ({ ok: true, balance: { status: 'ready', value: [{ currency: 'CNY', balance: '42.00' }] } }),
     renameWorkspace: (workspaceId, title) => {
       renameCalls.push({ workspaceId, title })
+      return Promise.resolve({ ok: true })
+    },
+    createWorkspace: (targetPath, title) => {
+      createCalls.push({ path: targetPath, title })
       return Promise.resolve({ ok: true })
     },
   }
@@ -330,8 +337,20 @@ if (main) {
   const tips = byClass(boardView, 'cr-chartTip').map((node) => nodeText(node))
   check('every column carries a tooltip', tips.length === 7 && tips.every((tip) => tip.includes('M') && tip.includes('个')), tips.join(' | '))
   check('completed task grows a downward bar',
-    byClass(boardView, 'cr-chartDown').some((node) => node.props.style && node.props.style.height !== '0%'),
+    byClass(boardView, 'cr-chartDown').some((node) => node.props.style && node.props.style['--h'] !== '0%'),
     JSON.stringify(byClass(boardView, 'cr-chartDown').map((node) => node.props.style)))
+
+  // --- motion contract: bars rise from zero, staggered left to right
+  const upBars = byClass(boardView, 'cr-chartUp')
+  check('bars carry a target height variable',
+    upBars.length === 7 && upBars.every((node) => node.props.style && typeof node.props.style['--h'] === 'string'),
+    JSON.stringify(upBars[0] && upBars[0].props.style))
+  const cols = byClass(boardView, 'cr-chartCol')
+  check('columns stagger the rise',
+    cols.length === 7 && String(cols[0].props.style['--i']) === '0' && String(cols[6].props.style['--i']) === '6',
+    JSON.stringify(cols.map((node) => node.props.style)))
+  check('board panel carries a key so it remounts', byClass(boardView, 'cr-panel')[0].props.key === 'board',
+    byClass(boardView, 'cr-panel')[0].props.key)
 
   // --- sessions tab
   const sessionsView = page.click('tabSessions')
@@ -370,6 +389,8 @@ if (main) {
   const rootNode = backView.nodes.find((node) => node.props.className === 'cr-root')
   const rootKids = (rootNode?.children || []).map((child) => child?.props?.className).filter(Boolean)
   check('records button lives inside the panel shell', rootKids.includes('cr-scroll') && rootKids.includes('cr-recordsBtn'), rootKids.join(','))
+  check('scroll content is wrapped for the rubber band', byClass(backView, 'cr-scrollInner').length === 1)
+  check('scroll container owns the ref used by the wheel handler', typeof byClass(backView, 'cr-scroll')[0].props.ref === 'object')
 
   // --- records panel and export
   const recordsView = page.click('cr-recordsBtn')
@@ -438,6 +459,30 @@ if (main) {
   check('card shows the new title', renamedView.text.join('|').includes('新名字'))
   check('rename dialog closes after success', byClass(renamedView, 'cr-dialog').length === 0)
 
+  // --- blank-canvas menu → create a conversation
+  const canvasView = page.contextMenu('cr-root')
+  check('blank canvas opens its own menu',
+    byClass(canvasView, 'cr-menuItem').length === 1 && byText(canvasView, 'menuCreate') !== undefined,
+    byClass(canvasView, 'cr-menuItem').length)
+  page.click('menuCreate')
+  const createView = page.view()
+  check('create dialog opens with two fields', byClass(createView, 'cr-dialog').length === 1 && byClass(createView, 'cr-input').length === 2)
+  const nameInput = page.input((node) => node.props.className === 'cr-input' && node.props['aria-label'] === 'createName')
+  check('new conversation defaults to 新建对话', nameInput !== undefined && nameInput.props.value === '新建对话', nameInput && nameInput.props.value)
+
+  page.click('confirm')
+  check('create without a path is rejected', page.view().text.join('|').includes('createMissingPath'))
+
+  const pathInput = page.input((node) => node.props.className === 'cr-input' && node.props['aria-label'] === 'createPath')
+  page.change(pathInput, 'E:\\demo\\hello')
+  page.change(page.input((node) => node.props.className === 'cr-input' && node.props['aria-label'] === 'createName'), '我的新对话')
+  page.click('confirm')
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  check('create calls the host with path and name',
+    createCalls.length === 1 && createCalls[0].path === 'E:\\demo\\hello' && createCalls[0].title === '我的新对话',
+    JSON.stringify(createCalls))
+  check('create dialog closes after success', byClass(page.view(), 'cr-dialog').length === 0)
+
   page.contextMenu('cr-card', (node) => node.props.className === 'cr-card' && String(node.props.title).includes('新名字'))
   const afterArchive = page.click('menuArchive')
   check('archiving removes the card', byClass(afterArchive, 'cr-card').length === 3, byClass(afterArchive, 'cr-card').length)
@@ -476,6 +521,26 @@ if (main) {
   check('records pinned inside the panel', /\.cr-recordsBtn\{position:absolute/.test(css) && /\.cr-records\{position:absolute/.test(css))
   check('account dialog is a real modal layer', /\.cr-scrim\{[^}]*position:fixed/.test(css) && /\.cr-scrim\{[^}]*z-index:1000/.test(css))
   check('modal carries its own theme tokens', /\.cr-scrim\{[^}]*--cr-line:/.test(css))
+  check('view transitions are defined',
+    /\.cr-detail\{animation:cr-viewIn/.test(css) && /\.cr-grid\{animation:cr-gridIn/.test(css) && /\.cr-panel\{animation:cr-panelIn/.test(css))
+  check('tab highlight animates',
+    /\.cr-tab\{transition:/.test(css) && /\.cr-tab\[aria-selected="true"\]\{animation:cr-tabOn/.test(css))
+  check('bars grow from zero',
+    /@keyframes cr-grow\{from\{height:0\}/.test(css) && /\.cr-chartUp,\.cr-chartDown\{height:var\(--h/.test(css))
+  check('overlays animate out',
+    /\.cr-records\[data-closing="true"\]\{animation:cr-drawerOut/.test(css) && /\.cr-scrim\[data-closing="true"\]\{animation:cr-scrimOut/.test(css))
+  check('reduced motion disables the new motion',
+    /prefers-reduced-motion: reduce\)\{[\s\S]*\.cr-detail/.test(css) && /prefers-reduced-motion: reduce\)\{[\s\S]*\.cr-chartUp/.test(css))
+  check('native scrollbar is hidden', /\.cr-scroll\{[^}]*scrollbar-width:none/.test(css) && /\.cr-scroll::\-webkit-scrollbar\{width:0/.test(css))
+  check('overlay scrollbar fades when idle', /\.cr-scrollbar\{[^}]*opacity:0[^}]*transition:opacity/.test(css) && /\.cr-scrollbar\[data-on="true"\]\{opacity:1/.test(css))
+  check('rubber band moves the content wrapper',
+    /\.cr-scrollInner\{[^}]*transform:translateY\(var\(--cr-pull/.test(css))
+  check('release springs back softly, not stiffly',
+    /\.cr-scrollInner\[data-spring="true"\]\{transition:transform \.46s cubic-bezier\(\.25,1\.08,\.34,1\)\}/.test(css))
+  check('scrollbar thumb uses the accent colour', /\.cr-scrollThumb\{[^}]*background:var\(--cr-magenta\)/.test(css))
+  check('menus animate in', /\.cr-menu\{[^}]*animation:cr-menuIn/.test(css))
+  check('reduced motion disables the spring',
+    /prefers-reduced-motion: reduce\)\{[\s\S]*\.cr-scrollInner\[data-spring="true"\]\{transition:none\}/.test(css))
   check('panel itself does not scroll', /\.cr-root\{[^}]*overflow:hidden/.test(css) && /\.cr-scroll\{[^}]*overflow:auto/.test(css))
   check('css braces balanced', (css.match(/\{/g) || []).length === (css.match(/\}/g) || []).length)
 

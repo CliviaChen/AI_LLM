@@ -116,6 +116,18 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       noValue: '—',
       clockAria: '当前时间',
       menuRename: '重命名工作区…',
+      canvasMenuAria: '画布菜单',
+      menuCreate: '创建新对话…',
+      createTitle: '创建新对话',
+      createName: '对话名称',
+      createPath: '工作区位置',
+      createPathPlaceholder: 'E:\\projects\\demo',
+      createPathHint: '填写这台电脑上已存在的文件夹绝对路径',
+      createDefaultName: '新建对话',
+      createMissingPath: '请填写工作区路径',
+      createUnavailable: '宿主未提供创建工作区接口（请关开一次插件以加载 Host 半边）',
+      createBusy: '创建中…',
+      createDone: '已创建新对话',
       menuArchive: '归档项目',
       menuUnarchive: '取消归档',
       menuHide: '隐藏项目',
@@ -252,6 +264,18 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       noValue: '—',
       clockAria: 'Current time',
       menuRename: 'Rename workspace…',
+      canvasMenuAria: 'Canvas menu',
+      menuCreate: 'New conversation…',
+      createTitle: 'New conversation',
+      createName: 'Conversation name',
+      createPath: 'Workspace location',
+      createPathPlaceholder: 'E:\\projects\\demo',
+      createPathHint: 'Absolute path to an existing folder on this computer',
+      createDefaultName: 'New conversation',
+      createMissingPath: 'Enter a workspace path',
+      createUnavailable: 'The host exposes no workspace create API (toggle the plugin once to load the Host half)',
+      createBusy: 'Creating…',
+      createDone: 'Conversation created',
       menuArchive: 'Archive project',
       menuUnarchive: 'Unarchive',
       menuHide: 'Hide project',
@@ -336,7 +360,18 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
   background-image:radial-gradient(var(--cr-line) 1.4px,transparent 1.4px);
   background-size:22px 22px;opacity:.07}
 .cr-scroll{position:relative;z-index:1;flex:1 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:24px;
-  padding:30px 36px 96px;box-sizing:border-box}
+  padding:30px 36px 96px;box-sizing:border-box;
+  scrollbar-width:none;-ms-overflow-style:none}
+.cr-scroll::-webkit-scrollbar{width:0;height:0}
+.cr-scrollInner{display:flex;flex-direction:column;gap:24px;transform:translateY(var(--cr-pull,0px));will-change:transform}
+.cr-scrollInner[data-spring="true"]{transition:transform .46s cubic-bezier(.25,1.08,.34,1)}
+/* overlay scrollbar: appears on wheel, fades out when idle */
+.cr-scrollbar{position:absolute;right:5px;top:18px;bottom:18px;width:12px;z-index:60;border-radius:2px;
+  background:color-mix(in srgb,var(--cr-line) 16%,transparent);opacity:0;transition:opacity .28s ease;pointer-events:none}
+.cr-scrollbar[data-on="true"]{opacity:1;pointer-events:auto}
+.cr-scrollThumb{position:absolute;left:1px;right:1px;top:0;box-sizing:border-box;border-radius:1px;
+  background:var(--cr-magenta);border:2px solid var(--cr-line);cursor:grab;touch-action:none}
+.cr-scrollbar[data-on="true"] .cr-scrollThumb:active{cursor:grabbing}
 .cr-top,.cr-hint,.cr-focus,.cr-grid,.cr-empty,.cr-detail{position:relative;z-index:1}
 /* clock: Memphis type — hour dominant, labels as tracked caps */
 .cr-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}
@@ -417,7 +452,8 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
 /* context menu */
 .cr-menuScrim{position:fixed;inset:0;z-index:70}
 .cr-menu{position:fixed;z-index:71;min-width:190px;padding:6px;border:2px solid var(--cr-line);border-radius:3px;
-  background:var(--cr-paper);box-shadow:8px 8px 0 var(--cr-shadow)}
+  background:var(--cr-paper);box-shadow:8px 8px 0 var(--cr-shadow);
+  animation:cr-menuIn .16s cubic-bezier(.2,1.3,.4,1) both}
 .cr-menuItem{display:block;width:100%;padding:8px 10px;border:0;border-radius:2px;background:transparent;color:var(--cr-line);
   font:inherit;font-size:13px;text-align:left;cursor:pointer}
 .cr-menuItem:hover,.cr-menuItem:focus-visible{background:var(--cr-lime);color:#111111;outline:none}
@@ -569,6 +605,9 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
   border-radius:2px;background:transparent;color:var(--cr-line);font:inherit;font-size:15px;line-height:1;cursor:pointer;padding:0}
 .cr-close:hover{background:var(--cr-line);color:var(--cr-paper)}
 .cr-close:focus-visible{outline:3px solid var(--cr-focus);outline-offset:2px}
+.cr-formField{display:block;margin-bottom:14px}
+.cr-formField:last-of-type{margin-bottom:0}
+.cr-fieldHint{display:block;margin-top:6px;font-size:10.5px;line-height:1.5;opacity:.6}
 .cr-dialogActions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;flex-wrap:wrap}
 .cr-input{box-sizing:border-box;width:100%;height:40px;padding:0 11px;border:2px solid var(--cr-line);border-radius:2px;
   background:var(--cr-paper);color:var(--cr-line);font:inherit;font-size:14px;font-weight:600}
@@ -598,6 +637,47 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
 @keyframes cr-pulse{
   0%,100%{transform:translate(0,0);box-shadow:9px 9px 0 var(--cr-shadow)}
   50%{transform:translate(-4px,-4px);box-shadow:15px 15px 0 var(--cr-shadow)}}
+
+/* motion: short, overshooting, never blurred — the hard shadow carries the weight */
+@keyframes cr-viewIn{from{opacity:0;transform:translateY(14px) scale(.988)}
+  to{opacity:1;transform:none}}
+@keyframes cr-gridIn{from{opacity:0;transform:translateY(10px) scale(.994)}
+  to{opacity:1;transform:none}}
+@keyframes cr-panelIn{from{opacity:0;transform:translateY(12px) scale(.992)}
+  to{opacity:1;transform:none}}
+@keyframes cr-tabOn{from{transform:scale(.9)}to{transform:scale(1)}}
+@keyframes cr-drawerIn{from{opacity:0;transform:translate(-8px,16px) scale(.97)}
+  to{opacity:1;transform:none}}
+@keyframes cr-drawerOut{to{opacity:0;transform:translate(-4px,10px) scale(.985)}}
+@keyframes cr-dialogIn{from{opacity:0;transform:translateY(12px) scale(.965)}
+  to{opacity:1;transform:none}}
+@keyframes cr-dialogOut{to{opacity:0;transform:translateY(8px) scale(.98)}}
+@keyframes cr-scrimIn{from{opacity:0}to{opacity:1}}
+@keyframes cr-scrimOut{to{opacity:0}}
+@keyframes cr-grow{from{height:0}to{height:var(--h,0%)}}
+@keyframes cr-tick{from{transform:scale(.72)}to{transform:scale(1)}}
+@keyframes cr-toastIn{from{opacity:0;transform:translate(-50%,12px) scale(.96)}
+  to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes cr-menuIn{from{opacity:0;transform:translateY(-4px) scale(.97)}to{opacity:1;transform:none}}
+
+.cr-detail{animation:cr-viewIn .22s cubic-bezier(.18,1.32,.42,1) both}
+.cr-grid{animation:cr-gridIn .2s cubic-bezier(.18,1.32,.42,1) both}
+.cr-panel{animation:cr-panelIn .2s cubic-bezier(.18,1.32,.42,1) both}
+.cr-tab{transition:background-color .16s ease,color .14s ease,box-shadow .16s ease,transform .16s ease}
+.cr-tab[aria-selected="true"]{animation:cr-tabOn .22s cubic-bezier(.2,1.45,.4,1)}
+.cr-records{animation:cr-drawerIn .22s cubic-bezier(.18,1.32,.42,1) both}
+.cr-records[data-closing="true"]{animation:cr-drawerOut .13s ease-in both}
+.cr-recordsBtn{transition:transform .16s ease,background-color .16s ease}
+.cr-recordsBtn:active{transform:translate(2px,2px)}
+.cr-scrim{animation:cr-scrimIn .14s ease-out both}
+.cr-scrim[data-closing="true"]{animation:cr-scrimOut .13s ease-in both}
+.cr-dialog{animation:cr-dialogIn .22s cubic-bezier(.18,1.32,.42,1) both}
+.cr-scrim[data-closing="true"] .cr-dialog{animation:cr-dialogOut .13s ease-in both}
+.cr-chartUp,.cr-chartDown{height:var(--h,0%);animation:cr-grow .46s cubic-bezier(.16,1.42,.36,1) both;
+  animation-delay:calc(var(--i,0) * 45ms)}
+.cr-chartDown{animation-delay:calc(var(--i,0) * 45ms + 70ms)}
+.cr-taskRow[data-done="true"] .cr-taskCheck{animation:cr-tick .2s cubic-bezier(.2,1.5,.4,1)}
+.cr-toast{animation:cr-toastIn .18s cubic-bezier(.2,1.4,.4,1) both}
 @media (max-width:640px){
   .cr-scroll{padding:22px 18px 92px}
   .cr-top{flex-direction:column;gap:14px}
@@ -610,7 +690,14 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
 }
 @media (prefers-reduced-motion: reduce){
   .cr-card,.cr-card[data-state="running"],.cr-card[data-state="waiting"]{animation:none}
-  .cr-card:hover,.cr-focusItem:hover{transform:none}}
+  .cr-card:hover,.cr-focusItem:hover{transform:none}
+  .cr-detail,.cr-grid,.cr-panel,.cr-records,.cr-records[data-closing="true"],
+  .cr-scrim,.cr-scrim[data-closing="true"],.cr-dialog,.cr-scrim[data-closing="true"] .cr-dialog,
+  .cr-chartUp,.cr-chartDown,.cr-toast,.cr-tab[aria-selected="true"],
+  .cr-taskRow[data-done="true"] .cr-taskCheck{animation:none}
+  .cr-tab,.cr-recordsBtn{transition:none}
+  .cr-scrollInner[data-spring="true"]{transition:none}
+  .cr-scrollbar{transition:none}}
 `
 
     function Styles() {
@@ -1043,7 +1130,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       const maxTasks = Math.max(1, ...activity.map((row) => row.doneTasks))
       const latest = sessions[0] || null
 
-      const overview = h('div', { className: 'cr-panel' },
+      const overview = h('div', { key: 'overview', className: 'cr-panel' },
         h('h3', { className: 'cr-panelTitle' }, t('tabOverview')),
         h('div', { className: 'cr-field' },
           h('span', { className: 'cr-fieldLabel' }, t('stageLabel')),
@@ -1083,7 +1170,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
         ),
       )
 
-      const board = h('div', { className: 'cr-panel' },
+      const board = h('div', { key: 'board', className: 'cr-panel' },
         h('h3', { className: 'cr-panelTitle' }, t('tabBoard')),
         h('div', { className: 'cr-statRow' },
           h('div', { className: 'cr-stat' },
@@ -1110,13 +1197,14 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
         ),
         h('div', { className: 'cr-chart', role: 'img', 'aria-label': t('activityAria') },
           h('span', { className: 'cr-chartBase', 'aria-hidden': 'true' }),
-          activity.map((day) => {
+          activity.map((day, index) => {
             const tip = t('chartTipTokens') + ' ' + formatM(day.tokens)
               + ' · ' + t('chartTipTasks') + ' ' + String(day.doneTasks) + t('unitTask')
             return h('div', {
               key: day.key,
               className: 'cr-chartCol',
               tabIndex: 0,
+              style: { '--i': String(index) },
               'aria-label': day.weekday + ' · ' + tip,
               'data-idle': day.tokens === 0 && day.doneTasks === 0 ? 'true' : 'false',
             },
@@ -1124,12 +1212,12 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
               h('span', {
                 className: 'cr-chartUp',
                 'aria-hidden': 'true',
-                style: { height: String(Math.round((day.tokens / maxTokens) * 46)) + '%' },
+                style: { '--h': String(Math.round((day.tokens / maxTokens) * 46)) + '%' },
               }),
               h('span', {
                 className: 'cr-chartDown',
                 'aria-hidden': 'true',
-                style: { height: String(Math.round((day.doneTasks / maxTasks) * 46)) + '%' },
+                style: { '--h': String(Math.round((day.doneTasks / maxTasks) * 46)) + '%' },
               }),
               h('span', { className: 'cr-chartTip' }, tip),
               h('span', { className: 'cr-chartLabel' }, day.weekday + ' ' + String(day.label)),
@@ -1141,7 +1229,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
         ),
       )
 
-      const taskPanel = h('div', { className: 'cr-panel' },
+      const taskPanel = h('div', { key: 'tasks', className: 'cr-panel' },
         h('h3', { className: 'cr-panelTitle' }, t('tasksTitle')),
         h('div', { className: 'cr-taskForm' },
           h('input', {
@@ -1183,7 +1271,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
           ),
       )
 
-      const sessionPanel = h('div', { className: 'cr-panel' },
+      const sessionPanel = h('div', { key: 'sessions', className: 'cr-panel' },
         h('h3', { className: 'cr-panelTitle' }, t('sessionsTitle')),
         sessions.length === 0
           ? h('div', { className: 'cr-emptyInline' }, t('sessionsEmpty'))
@@ -1323,8 +1411,127 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       const [toast, setToast] = useState(null)
       const [titles, setTitles] = useState({})
       const [renaming, setRenaming] = useState(null)
+      const [canvasMenu, setCanvasMenu] = useState(null)
+      const [creating, setCreating] = useState(null)
+      const [createClosing, setCreateClosing] = useState(false)
+      const [recordsClosing, setRecordsClosing] = useState(false)
+      const [tokenClosing, setTokenClosing] = useState(false)
+      const [renameClosing, setRenameClosing] = useState(false)
       const [onboarded, setOnboarded] = useState(() => readFlag(FLAG_KEY))
       const startsRef = useRef({})
+      const scrollRef = useRef(null)
+      const barTimerRef = useRef(null)
+      const pullRef = useRef(0)
+      const [scrollState, setScrollState] = useState({ top: 0, height: 0, view: 0 })
+      const [barOn, setBarOn] = useState(false)
+      const [pull, setPull] = useState(0)
+      const [springOn, setSpringOn] = useState(false)
+
+      // Overlays animate out for ~130ms before unmounting. Where no timer exists
+      // (the verification harness), the close lands immediately.
+      const afterMotion = (fn) => {
+        try {
+          window.setTimeout(fn, 130)
+        } catch (_error) {
+          fn()
+        }
+      }
+      const closeRecords = () => {
+        if (!recordsOpen || recordsClosing) return
+        setRecordsClosing(true)
+        afterMotion(() => { setRecordsOpen(false); setRecordsClosing(false) })
+      }
+      const closeToken = () => {
+        if (!tokenOpen || tokenClosing) return
+        setTokenClosing(true)
+        afterMotion(() => { setTokenOpen(false); setTokenClosing(false) })
+      }
+      const closeRename = () => {
+        if (!renaming || renameClosing) return
+        setRenameClosing(true)
+        afterMotion(() => { setRenaming(null); setRenameClosing(false) })
+      }
+      const closeCreate = () => {
+        if (!creating || createClosing) return
+        setCreateClosing(true)
+        afterMotion(() => { setCreating(null); setCreateClosing(false) })
+      }
+      const openCreate = () => {
+        setCanvasMenu(null)
+        setCreating({ name: t('createDefaultName'), path: '', error: null, busy: false })
+      }
+
+      // Rubber band: the further you pull past an edge, the less it moves.
+      const MAX_PULL = 56
+      const damp = (raw) => {
+        const size = Math.abs(raw)
+        return (raw < 0 ? -1 : 1) * MAX_PULL * (1 - Math.exp(-size / (MAX_PULL * 1.5)))
+      }
+
+      useEffect(() => {
+        const node = scrollRef.current
+        if (!node) return undefined
+        const sync = () => setScrollState({ top: node.scrollTop, height: node.scrollHeight, view: node.clientHeight })
+        sync()
+
+        const showBar = () => {
+          setBarOn(true)
+          if (barTimerRef.current) window.clearTimeout(barTimerRef.current)
+          barTimerRef.current = window.setTimeout(() => { setBarOn(false) }, 900)
+        }
+        const settle = () => {
+          if (pullRef.current === 0) return
+          pullRef.current = 0
+          setSpringOn(true)
+          setPull(0)
+          window.setTimeout(() => { setSpringOn(false) }, 320)
+        }
+        let springTimer = null
+        const scheduleSettle = () => {
+          if (springTimer) window.clearTimeout(springTimer)
+          springTimer = window.setTimeout(settle, 140)
+        }
+
+        const onScroll = () => { sync(); showBar() }
+        const onWheel = (event) => {
+          showBar()
+          const atTop = node.scrollTop <= 0
+          const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1
+          if ((atTop && event.deltaY < 0) || (atBottom && event.deltaY > 0)) {
+            if (typeof event.preventDefault === 'function') event.preventDefault()
+            // Positive pull moves the content down: wheel up at the top stretches
+            // downward, wheel down at the bottom stretches upward.
+            pullRef.current = damp(pullRef.current - event.deltaY)
+            setSpringOn(false)
+            setPull(pullRef.current)
+            scheduleSettle()
+            return
+          }
+          if (pullRef.current !== 0) settle()
+        }
+        const onResize = () => { sync() }
+
+        // Content height changes when a view or tab swaps without any scroll, so
+        // observe both the viewport and the content wrapper.
+        let observer = null
+        if (typeof ResizeObserver === 'function') {
+          observer = new ResizeObserver(() => { sync() })
+          observer.observe(node)
+          if (node.firstElementChild) observer.observe(node.firstElementChild)
+        }
+
+        node.addEventListener('scroll', onScroll, { passive: true })
+        node.addEventListener('wheel', onWheel, { passive: false })
+        window.addEventListener('resize', onResize)
+        return () => {
+          node.removeEventListener('scroll', onScroll)
+          node.removeEventListener('wheel', onWheel)
+          window.removeEventListener('resize', onResize)
+          if (observer) observer.disconnect()
+          if (barTimerRef.current) window.clearTimeout(barTimerRef.current)
+          if (springTimer) window.clearTimeout(springTimer)
+        }
+      }, [])
 
       // A successful rename updates the host store, but the event may arrive a
       // beat later; the override makes the card flip immediately.
@@ -1572,11 +1779,11 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       const recordsButtonNode = h('button', {
         type: 'button',
         className: 'cr-recordsBtn',
-        onClick: () => { setRecordsOpen(!recordsOpen) },
+        onClick: () => { if (recordsOpen) closeRecords(); else setRecordsOpen(true) },
       }, t('records'))
 
       const recordsNode = recordsOpen
-        ? h('aside', { className: 'cr-records', 'aria-label': t('records') },
+        ? h('aside', { className: 'cr-records', 'data-closing': recordsClosing ? 'true' : 'false', 'aria-label': t('records') },
           h('div', { className: 'cr-recordsHead' },
             h('h2', null, t('records')),
             h('div', { className: 'cr-recordsActions' },
@@ -1594,7 +1801,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
                 type: 'button',
                 className: 'cr-recordsClose',
                 'aria-label': t('recordsClose'),
-                onClick: () => { setRecordsOpen(false) },
+                onClick: closeRecords,
               }, '×'),
             ),
           ),
@@ -1671,7 +1878,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       }
 
       const tokenDialog = tokenOpen
-        ? modalLayer(h('div', { className: 'cr-scrim', onClick: () => { setTokenOpen(false) } },
+        ? modalLayer(h('div', { className: 'cr-scrim', 'data-closing': tokenClosing ? 'true' : 'false', onClick: closeToken },
           h('div', {
             className: 'cr-dialog',
             role: 'dialog',
@@ -1679,11 +1886,11 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
             'aria-label': t('tokenDialogTitle'),
             tabIndex: -1,
             onClick: (event) => { event.stopPropagation() },
-            onKeyDown: (event) => { if (event.key === 'Escape') setTokenOpen(false) },
+            onKeyDown: (event) => { if (event.key === 'Escape') closeToken() },
           },
             h('div', { className: 'cr-dialogHead' },
               h('h2', null, t('tokenDialogTitle')),
-              h('button', { type: 'button', className: 'cr-close', autoFocus: true, 'aria-label': t('close'), onClick: () => { setTokenOpen(false) } }, '×'),
+              h('button', { type: 'button', className: 'cr-close', autoFocus: true, 'aria-label': t('close'), onClick: closeToken }, '×'),
             ),
             h('p', { className: 'cr-dialogText' }, hostUsage ? t('tokenHostBody') : summary.tokenKnown ? t('tokenKnownBody') : t('tokenUnknownBody')),
             hostUsage
@@ -1701,7 +1908,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
             account.status === 'done' ? h('div', { className: 'cr-accountResult' }, account.text) : null,
             h('div', { className: 'cr-dialogActions' },
               h('button', { type: 'button', className: 'cr-btn cr-btn--primary', onClick: readAccount }, t('tokenRead')),
-              h('button', { type: 'button', className: 'cr-btn', onClick: () => { setTokenOpen(false) } }, t('close')),
+              h('button', { type: 'button', className: 'cr-btn', onClick: closeToken }, t('close')),
             ),
           ),
         ))
@@ -1742,7 +1949,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
           return
         }
         if (title === renaming.title) {
-          setRenaming(null)
+          closeRename()
           return
         }
         setRenaming(Object.assign({}, renaming, { busy: true, error: null }))
@@ -1761,7 +1968,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
         pending.then(
           () => {
             setTitles(Object.assign({}, titles, { [targetId]: title }))
-            setRenaming(null)
+            closeRename()
             setToast(t('renameDone'))
           },
           (error) => {
@@ -1771,7 +1978,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
       }
 
       const renameNode = renaming
-        ? modalLayer(h('div', { className: 'cr-scrim', onClick: () => { if (!renaming.busy) setRenaming(null) } },
+        ? modalLayer(h('div', { className: 'cr-scrim', 'data-closing': renameClosing ? 'true' : 'false', onClick: () => { if (!renaming.busy) closeRename() } },
           h('div', {
             className: 'cr-dialog',
             role: 'dialog',
@@ -1779,7 +1986,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
             'aria-label': t('renameTitle'),
             tabIndex: -1,
             onClick: (event) => { event.stopPropagation() },
-            onKeyDown: (event) => { if (event.key === 'Escape' && !renaming.busy) setRenaming(null) },
+            onKeyDown: (event) => { if (event.key === 'Escape' && !renaming.busy) closeRename() },
           },
             h('div', { className: 'cr-dialogHead' },
               h('h2', null, t('renameTitle')),
@@ -1787,7 +1994,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
                 type: 'button',
                 className: 'cr-close',
                 'aria-label': t('close'),
-                onClick: () => { if (!renaming.busy) setRenaming(null) },
+                onClick: () => { if (!renaming.busy) closeRename() },
               }, '×'),
             ),
             h('p', { className: 'cr-dialogText' }, t('renameHint')),
@@ -1808,7 +2015,7 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
                 type: 'button',
                 className: 'cr-btn',
                 disabled: renaming.busy,
-                onClick: () => { if (!renaming.busy) setRenaming(null) },
+                onClick: () => { if (!renaming.busy) closeRename() },
               }, t('cancel')),
               h('button', {
                 type: 'button',
@@ -1821,13 +2028,212 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
         ))
         : null
 
-      const shell = (children) => h('div', { className: 'cr-root' },
+      const viewSize = scrollState.view || 0
+      const totalSize = scrollState.height || 0
+      const maxScroll = Math.max(0, totalSize - viewSize)
+      const trackSize = Math.max(0, viewSize - 36)
+      const thumbSize = totalSize > 0 ? Math.max(30, Math.round(trackSize * Math.min(1, viewSize / totalSize))) : 0
+      const thumbTop = maxScroll > 0 && trackSize > thumbSize
+        ? Math.round((trackSize - thumbSize) * (scrollState.top / maxScroll))
+        : 0
+
+      const startDrag = (event) => {
+        const node = scrollRef.current
+        if (!node) return
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        const startY = event.clientY
+        const startTop = node.scrollTop
+        const free = Math.max(1, trackSize - thumbSize)
+        const scale = maxScroll / free
+        setBarOn(true)
+
+        const move = (moveEvent) => {
+          const raw = startTop + (moveEvent.clientY - startY) * scale
+          if (raw < 0) {
+            node.scrollTop = 0
+            pullRef.current = damp(-raw)
+          } else if (raw > maxScroll) {
+            node.scrollTop = maxScroll
+            pullRef.current = damp(maxScroll - raw)
+          } else {
+            node.scrollTop = raw
+            pullRef.current = 0
+          }
+          setSpringOn(false)
+          setPull(pullRef.current)
+          setScrollState({ top: node.scrollTop, height: node.scrollHeight, view: node.clientHeight })
+        }
+        const up = () => {
+          window.removeEventListener('pointermove', move)
+          window.removeEventListener('pointerup', up)
+          if (pullRef.current !== 0) {
+            pullRef.current = 0
+            setSpringOn(true)
+            setPull(0)
+            window.setTimeout(() => { setSpringOn(false) }, 320)
+          }
+          if (barTimerRef.current) window.clearTimeout(barTimerRef.current)
+          barTimerRef.current = window.setTimeout(() => { setBarOn(false) }, 900)
+        }
+        window.addEventListener('pointermove', move)
+        window.addEventListener('pointerup', up)
+      }
+
+      const scrollbarNode = maxScroll > 1
+        ? h('div', { className: 'cr-scrollbar', 'data-on': barOn ? 'true' : 'false', 'aria-hidden': 'true' },
+          h('div', {
+            className: 'cr-scrollThumb',
+            style: { height: String(thumbSize) + 'px', transform: 'translateY(' + String(thumbTop) + 'px)' },
+            onPointerDown: startDrag,
+          }),
+        )
+        : null
+
+      const submitCreate = () => {
+        if (!creating || creating.busy) return
+        const name = String(creating.name || '').trim() || t('createDefaultName')
+        const targetPath = String(creating.path || '').trim()
+        if (targetPath === '') {
+          setCreating(Object.assign({}, creating, { error: t('createMissingPath') }))
+          return
+        }
+        setCreating(Object.assign({}, creating, { busy: true, error: null }))
+
+        let pending
+        try {
+          pending = props.createWorkspace ? props.createWorkspace(targetPath, name) : null
+        } catch (error) {
+          pending = Promise.reject(error)
+        }
+        if (!pending || typeof pending.then !== 'function') {
+          setCreating(Object.assign({}, creating, { busy: false, error: t('createUnavailable') }))
+          return
+        }
+        pending.then(
+          () => {
+            closeCreate()
+            setToast(t('createDone'))
+          },
+          (error) => {
+            setCreating(Object.assign({}, creating, { busy: false, error: String((error && error.message) || error) }))
+          },
+        )
+      }
+
+      const createNode = creating
+        ? modalLayer(h('div', { className: 'cr-scrim', 'data-closing': createClosing ? 'true' : 'false', onClick: () => { if (!creating.busy) closeCreate() } },
+          h('div', {
+            className: 'cr-dialog',
+            role: 'dialog',
+            'aria-modal': 'true',
+            'aria-label': t('createTitle'),
+            tabIndex: -1,
+            onClick: (event) => { event.stopPropagation() },
+            onKeyDown: (event) => { if (event.key === 'Escape' && !creating.busy) closeCreate() },
+          },
+            h('div', { className: 'cr-dialogHead' },
+              h('h2', null, t('createTitle')),
+              h('button', {
+                type: 'button',
+                className: 'cr-close',
+                autoFocus: true,
+                'aria-label': t('close'),
+                onClick: () => { if (!creating.busy) closeCreate() },
+              }, '×'),
+            ),
+            h('label', { className: 'cr-formField' },
+              h('span', { className: 'cr-fieldLabel' }, t('createName')),
+              h('input', {
+                className: 'cr-input',
+                type: 'text',
+                value: creating.name,
+                maxLength: 80,
+                disabled: creating.busy,
+                'aria-label': t('createName'),
+                onChange: (event) => setCreating(Object.assign({}, creating, { name: event.target.value, error: null })),
+                onKeyDown: (event) => { if (event.key === 'Enter') submitCreate() },
+              }),
+            ),
+            h('label', { className: 'cr-formField' },
+              h('span', { className: 'cr-fieldLabel' }, t('createPath')),
+              h('input', {
+                className: 'cr-input',
+                type: 'text',
+                value: creating.path,
+                placeholder: t('createPathPlaceholder'),
+                disabled: creating.busy,
+                'aria-label': t('createPath'),
+                onChange: (event) => setCreating(Object.assign({}, creating, { path: event.target.value, error: null })),
+                onKeyDown: (event) => { if (event.key === 'Enter') submitCreate() },
+              }),
+              h('span', { className: 'cr-fieldHint' }, t('createPathHint')),
+            ),
+            creating.error ? h('div', { className: 'cr-formError' }, creating.error) : null,
+            h('div', { className: 'cr-dialogActions' },
+              h('button', {
+                type: 'button',
+                className: 'cr-btn',
+                disabled: creating.busy,
+                onClick: () => { if (!creating.busy) closeCreate() },
+              }, t('cancel')),
+              h('button', {
+                type: 'button',
+                className: 'cr-btn cr-btn--primary',
+                disabled: creating.busy,
+                onClick: submitCreate,
+              }, creating.busy ? t('createBusy') : t('confirm')),
+            ),
+          ),
+        ))
+        : null
+
+      const canvasMenuNode = canvasMenu
+        ? h(React.Fragment, null,
+          h('div', {
+            className: 'cr-menuScrim',
+            onClick: () => { setCanvasMenu(null) },
+            onContextMenu: (event) => { event.preventDefault(); setCanvasMenu(null) },
+          }),
+          h('div', {
+            className: 'cr-menu',
+            role: 'menu',
+            'aria-label': t('canvasMenuAria'),
+            style: { left: String(canvasMenu.x) + 'px', top: String(canvasMenu.y) + 'px' },
+            onKeyDown: (event) => { if (event.key === 'Escape') setCanvasMenu(null) },
+          },
+            h('button', {
+              type: 'button',
+              className: 'cr-menuItem',
+              role: 'menuitem',
+              autoFocus: true,
+              onClick: openCreate,
+            }, t('menuCreate')),
+          ),
+        )
+        : null
+
+      const onCanvasContextMenu = (event) => {
+        if (event.defaultPrevented) return
+        if (typeof event.preventDefault === 'function') event.preventDefault()
+        setCanvasMenu({ x: Number(event.clientX) || 0, y: Number(event.clientY) || 0 })
+      }
+
+      const shell = (children) => h('div', { className: 'cr-root', onContextMenu: onCanvasContextMenu },
         h(Styles),
-        h('div', { className: 'cr-scroll' }, children),
+        h('div', { className: 'cr-scroll', ref: scrollRef },
+          h('div', {
+            className: 'cr-scrollInner',
+            'data-spring': springOn ? 'true' : 'false',
+            style: { '--cr-pull': String(pull) + 'px' },
+          }, children),
+        ),
+        scrollbarNode,
+        canvasMenuNode,
         recordsButtonNode,
         recordsNode,
         tokenDialog,
         renameNode,
+        createNode,
         toastNode,
       )
 
@@ -2098,6 +2504,25 @@ const WEEKDAY_KEYS = ['wdMon', 'wdTue', 'wdWed', 'wdThu', 'wdFri', 'wdSat', 'wdS
                 headers: { 'content-type': 'application/json' },
                 credentials: 'same-origin',
                 body: JSON.stringify({ workspaceId, title }),
+              })
+              let body = null
+              try {
+                body = await response.json()
+              } catch (_error) {
+                body = null
+              }
+              if (!response || response.ok !== true || !body || body.ok !== true) {
+                throw new Error(body && body.error ? body.error : 'HTTP ' + (response ? String(response.status) : '?'))
+              }
+              return body
+            },
+            // Create registers an existing directory on the Host, then renames it.
+            createWorkspace: async (targetPath, title) => {
+              const response = await fetch('/api/control-room-create', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ path: targetPath, title }),
               })
               let body = null
               try {

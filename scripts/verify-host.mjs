@@ -29,7 +29,13 @@ const loadPlugin = () => import(entry + '?case=' + (++tag))
 function makeCtx(options = {}) {
   const routes = []
   const renameCalls = []
+  const createCalls = []
   const controller = {
+    async create(request) {
+      createCalls.push(request)
+      const name = String(request.path || '').split(/[\\/]/).filter(Boolean).pop() || 'workspace'
+      return { workspace: { workspaceId: 'ws-new', title: name, path: request.path }, created: true }
+    },
     async rename(request) {
       renameCalls.push(request)
       return { workspace: { workspaceId: request.workspaceId, title: request.title } }
@@ -64,7 +70,7 @@ function makeCtx(options = {}) {
     },
     connection,
   }
-  return { ctx, routes, renameCalls }
+  return { ctx, routes, renameCalls, createCalls }
 }
 
 // ---------------------------------------------------------------- happy path
@@ -73,16 +79,18 @@ function makeCtx(options = {}) {
   check('host half exports apply', typeof mod.apply === 'function')
   check('host half injects connection', Array.isArray(mod.inject) && mod.inject.includes('connection'), JSON.stringify(mod.inject))
 
-  const { ctx, routes, renameCalls } = makeCtx()
+  const { ctx, routes, renameCalls, createCalls } = makeCtx()
   mod.apply(ctx)
-  check('both routes registered', routes.length === 2, routes.length)
+  check('all three routes registered', routes.length === 3, routes.length)
 
   const route = routes.find((item) => item.path === '/api/control-room-usage') || {}
   const renameRoute = routes.find((item) => item.path === '/api/control-room-rename') || {}
+  const createRoute = routes.find((item) => item.path === '/api/control-room-create') || {}
   check('route path', route.path === '/api/control-room-usage', route.path)
   check('route accepts GET only', Array.isArray(route.methods) && route.methods.length === 1 && route.methods[0] === 'GET', JSON.stringify(route.methods))
   check('route declares a body mode', typeof route.requestBody === 'string', route.requestBody)
   check('rename route accepts POST only', renameRoute.methods && renameRoute.methods.length === 1 && renameRoute.methods[0] === 'POST', JSON.stringify(renameRoute.methods))
+  check('create route accepts POST only', createRoute.methods && createRoute.methods.length === 1 && createRoute.methods[0] === 'POST', JSON.stringify(createRoute.methods))
 
   const response = await route.fetch({ url: 'http://127.0.0.1:61469/api/control-room-usage?scale=week' })
   check('route answers 200', response.status === 200, response.status)
@@ -144,6 +152,21 @@ function makeCtx(options = {}) {
   check('missing workspaceId is rejected', missingId.status === 400, missingId.status)
   const badJson = await renameRoute.fetch({ json: async () => { throw new Error('bad body') } })
   check('invalid JSON body is rejected', badJson.status === 400, badJson.status)
+
+  // --- create route: register a directory, then apply the chosen name
+  const created = await createRoute.fetch({ json: async () => ({ path: 'E:\\demo\\hello', title: '  我的新对话  ' }) })
+  check('create answers 200', created.status === 200, created.status)
+  const createdBody = await created.json()
+  check('create registers the given directory',
+    createCalls.length === 1 && createCalls[0].path === 'E:\\demo\\hello',
+    JSON.stringify(createCalls))
+  check('create applies the typed name',
+    renameCalls.length === 2 && renameCalls[1].workspaceId === 'ws-new' && renameCalls[1].title === '我的新对话',
+    JSON.stringify(renameCalls))
+  check('create reports the final workspace', createdBody.ok === true && createdBody.workspace.title === '我的新对话', JSON.stringify(createdBody))
+
+  const noPath = await createRoute.fetch({ json: async () => ({ title: 'x' }) })
+  check('create without a path is rejected', noPath.status === 400, noPath.status)
 }
 
 // ------------------------------------------- registration falls back gracefully
@@ -158,7 +181,7 @@ function makeCtx(options = {}) {
     },
   })
   mod.apply(ctx)
-  check('falls back when requestBody is rejected', routes.length === 2, routes.length)
+  check('falls back when requestBody is rejected', routes.length === 3, routes.length)
   check('fallback keeps the same path', routes[0] && routes[0].path === '/api/control-room-usage', routes[0] && routes[0].path)
 }
 
@@ -167,8 +190,11 @@ function makeCtx(options = {}) {
   const { ctx, routes } = makeCtx({ controller: null })
   mod.apply(ctx)
   const renameRoute = routes.find((item) => item.path === '/api/control-room-rename')
-  const response = await renameRoute.fetch({ json: async () => ({ workspaceId: 'ws-1', title: 'x' }) })
-  check('rename without the controller answers 501', response.status === 501, response.status)
+  const renameResponse = await renameRoute.fetch({ json: async () => ({ workspaceId: 'ws-1', title: 'x' }) })
+  check('rename without the controller answers 501', renameResponse.status === 501, renameResponse.status)
+  const createRoute = routes.find((item) => item.path === '/api/control-room-create')
+  const createResponse = await createRoute.fetch({ json: async () => ({ path: 'E:\\x' }) })
+  check('create without the controller answers 501', createResponse.status === 501, createResponse.status)
 }
 
 {

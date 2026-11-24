@@ -20,18 +20,20 @@ export const inject = ['connection']
 const SCALES = { day: 1, week: 7, month: 30 }
 const ROUTE_PATH = '/api/control-room-usage'
 const RENAME_PATH = '/api/control-room-rename'
+const CREATE_PATH = '/api/control-room-create'
 const CACHE_MS = 30000
 
 const cache = { at: 0, key: '', payload: null }
 
 // Written to `<dsh home>/control-room-host.json` so activation and calls can be
 // diagnosed without a browser or a log file.
-const status = { registered: false, renameRegistered: false, renameAvailable: false, route: ROUTE_PATH, error: null, calls: 0, lastCall: null }
+const status = { registered: false, renameRegistered: false, createRegistered: false, renameAvailable: false, route: ROUTE_PATH, error: null, calls: 0, lastCall: null }
 
 function flushStatus() {
   writeStatus({
     registered: status.registered,
     renameRegistered: status.renameRegistered,
+    createRegistered: status.createRegistered,
     renameAvailable: status.renameAvailable,
     route: status.route,
     error: status.error,
@@ -164,6 +166,43 @@ export function apply(ctx) {
       }
     }
 
+    // Registers an existing directory as a Workspace, then applies the chosen name.
+    const createHandler = async (request) => {
+      let body = null
+      try {
+        body = await request.json()
+      } catch (_error) {
+        return jsonResponse({ ok: false, error: 'invalid JSON body' }, 400)
+      }
+      const rawPath = body && typeof body.path === 'string' ? body.path.trim() : ''
+      const title = body && typeof body.title === 'string' ? body.title.trim() : ''
+      if (rawPath === '') return jsonResponse({ ok: false, error: 'path is required' }, 400)
+
+      const controller = typeof ctx.get === 'function' ? ctx.get('workspaceController') : null
+      if (!controller || typeof controller.create !== 'function') {
+        return jsonResponse({ ok: false, error: 'workspace create is unavailable' }, 501)
+      }
+
+      try {
+        const result = await controller.create({ path: rawPath })
+        const workspace = result && result.workspace ? result.workspace : null
+        if (!workspace) return jsonResponse({ ok: false, error: 'the host returned no workspace' }, 500)
+
+        let finalWorkspace = workspace
+        if (title !== '' && title !== workspace.title && typeof controller.rename === 'function') {
+          const renamed = await controller.rename({ workspaceId: workspace.workspaceId, title })
+          if (renamed && renamed.workspace) finalWorkspace = renamed.workspace
+        }
+
+        status.creates = (status.creates || 0) + 1
+        status.lastCreate = { at: new Date().toISOString(), path: rawPath, title }
+        flushStatus()
+        return jsonResponse({ ok: true, workspace: finalWorkspace, created: result.created === true }, 200)
+      } catch (error) {
+        return jsonResponse({ ok: false, error: messageOf(error) }, 400)
+      }
+    }
+
     // The request-body mode accepted by Connection changed across releases; try
     // the documented shape, then the same route without it, then the stream mode.
     const register = (base) => {
@@ -185,9 +224,11 @@ export function apply(ctx) {
 
     const usageRoute = register({ path: ROUTE_PATH, methods: ['GET'], fetch: handler })
     const renameRoute = register({ path: RENAME_PATH, methods: ['POST'], fetch: renameHandler })
+    const createRoute = register({ path: CREATE_PATH, methods: ['POST'], fetch: createHandler })
 
     status.registered = usageRoute.dispose !== null
     status.renameRegistered = renameRoute.dispose !== null
+    status.createRegistered = createRoute.dispose !== null
     status.error = usageRoute.error === null ? null : messageOf(usageRoute.error)
     // Record whether the Host actually exposes the controller, so a rename failure
     // can be told apart from a missing service without opening a browser.
@@ -206,7 +247,7 @@ export function apply(ctx) {
     }
 
     return () => {
-      for (const entry of [usageRoute, renameRoute]) {
+      for (const entry of [usageRoute, renameRoute, createRoute]) {
         if (typeof entry.dispose === 'function') entry.dispose()
       }
     }
