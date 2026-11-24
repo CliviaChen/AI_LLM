@@ -1,18 +1,20 @@
 {
   "name": "@local/control-room",
-  "version": "0.2.1",
+  "version": "0.11.0",
   "private": true,
   "type": "module",
-  "description": "Control room: a quiet row of glass status cards for local projects, opened from the sidebar foot.",
+  "description": "Control room: a project cockpit for local DSH workspaces, opened from the sidebar foot.",
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
+    "./usage": "./usage.js",
     "./locale/*.json": "./locale/*.json",
     "./icon": "./icon.svg"
   },
   "files": [
     "index.js",
     "client.js",
+    "usage.js",
     "cordis.patch.yml",
     "locale/*.json",
     "docs",

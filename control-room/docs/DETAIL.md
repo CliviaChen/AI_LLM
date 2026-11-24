@@ -5,33 +5,60 @@ A single screen of status cards for the local projects (DSH Workspaces) of this 
 ## What it does
 
 - **Sidebar foot entry** — a row above Settings. In the 56px rail it shows the glyph only; hovering shows the label.
-- **Cards only** — the page renders project cards and nothing else: no header, no counters, no detail or overview panel, no search field, no back button. Leaving the page is done from the sidebar.
-- **Three cards per row** — projects whose Session is running come first, then the rest by update time. Every project gets a card; the grid wraps into as many rows as needed, and a short last row starts at the left edge of the grid rather than centring.
-- **Open a project** — the whole card is one button that opens its Workspace. There is no secondary action.
-- **Running conversation** — while a project's Session is working, the card's rim carries a rotating conic light sweep, the card's fill breathes once every 2.6s, and its timestamp is replaced by `Running · mm:ss`. Time starts when the page first observes the Session running.
+- **Project cards** — one card per Workspace, ordered *needs you → running → idle, then most recently updated*. Clicking a card opens the project cockpit; it does not start a conversation.
+- **Three states** — `idle`, `running`, and `waiting`. Waiting is derived from the host's `pendingInteraction.kind` (`approval`, `plan-review`, `question`) and takes precedence over running; both active states pulse the hard shadow in fluorescent lime, and the dot is square when waiting and round when running.
+- **Stage colours** — five stages: unset (dashed neutral chip, plain card), idea (cyan), active (amber), review (hot pink), delivered (ink). A stage tints the card 13% and paints a solid bold chip; unset stays neutral with a dashed chip. Lime is excluded from the stage palette on purpose, so the only lime on screen is the running / needs-you pulse — motion and colour never argue.
+- **"Do next" bar** — up to three cards ranked needs-you → due today/tomorrow → due this week → running → touched this week, each showing its reason.
+- **Cockpit** — four views behind the card:
+  - *Overview* keeps stage, deadline and a one-line next step.
+  - *Board* shows sessions, tasks done, days to deadline, last activity, a 14-day activity chart built from session update times, and a task progress bar.
+  - *Tasks* lists per-project to-dos with add, complete and delete.
+  - *Sessions* lists the project's sessions newest-first; clicking one calls `uiWorkspace.openSession(sessionId)` and falls back to `openWorkspace` when the host declines.
+- **Explicit chat** — the cockpit header carries the only entry to the conversation, so looking around never interrupts a running chat.
+- **Right-click menu** — archive, hide, or jump to *Sessions* for stars and notes. Archived and hidden projects drop out of the grid and the focus bar; a footnote below the grid shows them again and flags them, so nothing is lost.
+- **Stars and notes** — each session row in the cockpit can be starred and annotated; both live in the same local record as the project metadata.
+- **Clock** — top-right, on the same row as *Do next*: hour:minute at display size, then `YYYY.MM.DD` and the browser's weekday name in tracked caps. It ticks with the same one-second state that drives the running timers.
+- **Records drawer** — a button anchored to the panel's own bottom-left corner (absolutely positioned inside the panel, not fixed to the viewport, so it can never cover the host sidebar). It opens a panel with a day / week / month switch and four numbers: projects delivered in the window (counted from the date a project was marked delivered), sessions, peak working hour, and token usage. Copy or download the period as Markdown. The panel's content scrolls inside an inner container, which is what keeps the button pinned while the cards scroll.
+- **First run** — a one-line explainer that can be dismissed and is remembered locally.
 
 ## Visual language
 
-Cards are rounded squares (`aspect-ratio: 1/1`) sized from the viewport, laid out in a grid of at most three columns with a wide gap, and centred on a flat, single-color host background — the former dot grid and colored aura are gone. The grid container sizes itself to the columns in use, so one or two cards still sit centred on the page; from the fourth card on the column count stays at three and the extra rows fill left to right.
+The panel is a Memphis tile wall: square cards (`aspect-ratio: 1/1`) sized from the viewport, laid out in a grid of at most three columns with a wide gap, each square to the page and carried on a hard 9px offset shadow with zero blur. The grid container sizes itself to the columns in use, so one or two cards still sit centred; from the fourth card on the column count stays at three and the extra rows fill left to right.
 
-Each card is translucent glass: layered white gradients over `backdrop-filter: blur(30px) saturate(180%)`, a 1px masked specular rim, a soft top gloss, and a deep low-opacity shadow beneath it, so the card reads as floating above the surface. The page background and all text use host tokens (`--dsw-alias-bg-base`, `--dsw-alias-label-primary/secondary`); the glass fill, rim, tint and shadow are theme-aware literals switched with `light-dark()`, because they describe a material rather than a role. In light mode the fill carries a pale blue tint and a blue-grey border so the card still separates from the near-white page; the blur itself is not observable over a flat background and the float is carried by the tint, rim and shadow.
+Edge, paper and shadow are `light-dark()` pairs — ink-on-bone in the light theme, bone-on-near-black in the dark one — so a tile reads as a drawn object in either host theme. Text stays on the card's own ink token rather than the host label tokens, because the host tokens are tuned for the panel ground, not for a bone or plum tile. The panel background is the host `--dsw-alias-bg-base`; the dot grid behind the tiles is the ink token at 7% and deliberately bleeds 8% past the panel padding.
+
+Three saturated accents come from the Memphis palette: hot pink (`#ff2e9a`) for the project mark, fluorescent lime (`#c8ff00`) for the running state, with cyan (`#00e5ff`) and amber (`#ff8a00`) defined and reserved. The badge at the card's top-left is a magenta square holding a white vector glyph (a 2×2 rounded grid) with its own 3px shadow, replacing the former letter monogram.
 
 Because the page holds no header, the panel carries a visually hidden `<h1>` so the page still has a name for screen readers.
 
-The badge at the card's top-left is a light-blue rounded square holding a white vector glyph (a 2×2 rounded grid) instead of the former letter monogram.
-
-The running rim is a `conic-gradient` whose `--cr-angle` is animated with an `@property`-registered custom property, masked to the card's 1px border, with saturated blue stops so it stays visible on the light theme; a separate `cr-breathe` shadow animation runs on the card itself. `prefers-reduced-motion: reduce` disables the sweep, the breathe, the dot, and the hover lift.
+The two active states differ by more than colour: waiting uses a lime outline and a square dot, running keeps the ink outline and a round dot, and each carries its own copy (`Needs you` / `Running · mm:ss`). Both pulse the hard shadow 9px → 15px with a −4px lift (`cr-pulse`, 1.6s). `prefers-reduced-motion: reduce` stops the pulse and drops the hover lift.
 
 ## Usage
 
 1. Open **Control room** from the action above Settings in the left sidebar.
-2. Pick a card; its click calls `uiWorkspace.openWorkspace`, which opens that project and — because the host ends that call with `selectPanel(null)` — returns the main area to the conversation.
-3. Use the sidebar to leave the page; every project is already on it.
+2. Pick a card to open its cockpit — overview, board, tasks, sessions. No conversation starts.
+3. Use **Open chat** in the cockpit header when you want the conversation; use a row in the *Sessions* view to reopen one specific session.
+4. **← Back** returns to the card wall with its ordering and states intact.
+5. Use the sidebar to leave the page.
 
 ## Limitations
 
 - Projects are the Workspaces already registered in DSH; this page does not scan the filesystem, create Workspaces, or remove them — do that in the sidebar.
 - The grid is capped at three columns, not at three cards: many projects make the page scroll, and it has no search or pagination.
-- Sessions are not listed individually: a card reads only its Workspace title, running state and update time.
+- **Stage, deadline, next step and tasks live in `localStorage`**, not in the host. They are per browser, do not travel between devices or browser profiles, and are lost if site data is cleared. Moving them to host configuration is what v1.1 would do.
+- **The three states use `pendingInteraction` only.** If the host exposes another kind of interaction, it renders as the generic "needs you" label until a copy key is added.
+- **Rename writes through to the Host.** The context menu's rename item opens a modal and posts `{ workspaceId, title }` to `/api/control-room-rename`; the Host calls `workspaceController.rename`, so the workspace record — and therefore the sidebar entry — changes. The card also keeps a local title override, so it flips immediately even if the host event arrives later. A blank title is rejected before the request; duplicates and other host errors surface in the dialog.
+- **Peak window is token-ranked and scale-aware.** Day scale finds the busiest **three consecutive hours** (`13:00—16:00`); week scale finds the busiest **day** (`11-22`); month scale finds the busiest **Monday-to-Sunday week** (`11-23—11-29`). Ranking uses **net** tokens, because ranking by the cached total would just report whichever hour reused the most context.
+- **No data means no panel.** If the Host route is unavailable, or the relevant hourly / daily / weekly bucket has no tokens, the peak tile is removed entirely instead of rendering `—`.
+- **The board has no durations.** Sessions expose titles and update times, not durations.
+- **Token usage comes from the Host, not the browser.** The bundle's Host half scans `<dsh home>/sessions/**/session.v4.jsonl.zstd` and sums `data.message.usage` for the selected window. Session files are **concatenated zstd frames**, so `zstdDecompressSync` is applied frame by frame using `engine.bytesWritten`; a single-shot decompress returns only the first frame.
+- **Two token figures.** `net` = `inputTokens + outputTokens`; `total` = the host's `totalTokens`, which includes cache reads. The tile shows net and the dialog shows both, so a 5.6M net can legitimately sit beside a 425M total.
+- **The Client reaches it through an exact Fetch route.** `GET /api/control-room-usage?scale=day|week|month` is registered with `connection.fetch.register(...)`; Connection answers 403 to any non-owner Peer, so a remote browser cannot read another user's usage.
+- **Loading a Host change does not need a full restart.** HMR watches no roots by default (`root: []`), so editing `index.js` does not reload it — but toggling the plugin row off and on in **Plugins** re-imports the Host half. A normal start also loads it. Activation is recorded in `<dsh home>/control-room-host.json` with `registered`, `calls`, `lastCall` and the Host's Node version, so the route can be diagnosed without a browser.
+- **It also needs a Host Node with zstd.** This desktop runs the Host on Node 24.21.0, which has `zlib.zstdDecompressSync`; an older runtime would make the scanner throw and the route answer 500 rather than silently return zeros.
+- **Registration is defensive.** Connection's accepted `requestBody` mode has changed across releases, so the Host half tries `buffered`, then the same route without the field, then `stream`, and never lets a failure break plugin activation.
+- **The account returns a balance, not token history.** The same route also calls `deepseekAccount.getBalance` and returns the wallet rows. `deepseekAccount` exposes profile, balance, notifications and sign-in — no usage query — which is why the token numbers come from logs instead.
+- **Delivered counts need a delivery date.** Marking a stage *delivered* stamps `doneAt`; projects delivered before this version have no stamp and therefore do not count in any window. The card still shows the stage.
+- **Archive and hide are local.** They behave the same way (both leave the grid); the distinction is only the label, so a future version can attach different behaviour to each.
+- **Session titles come from the host.** A session without a title shows the localized "Untitled session" label.
 - The elapsed time for a running conversation is measured from the moment this page observes it running; a reload restarts that measurement, and the value is not read from the Session log.
-- The page carries no navigation controls of its own; it is a panel reached from, and left through, the sidebar.
